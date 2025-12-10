@@ -1,9 +1,9 @@
 const express = require('express')
-const cors =require('cors')
+const cors = require('cors')
 const app = express()
 require('dotenv').config();
-const { MongoClient, ServerApiVersion } = require('mongodb');
-const port =process.env.PORT || 3000
+const { MongoClient, ServerApiVersion, ObjectId } = require('mongodb');
+const port = process.env.PORT || 3000
 
 // middil were 
 app.use(express.json())
@@ -27,21 +27,91 @@ async function run() {
     // Connect the client to the server	(optional starting in v4.7)
     // await client.connect();
 
-    const db =client.db("etuitor_db")
-   
+    const db = client.db("etuitor_db")
+
     const tuitionscollection = db.collection('tuitions')
+    // tuitor db 
+    const applicationsCollection = db.collection('applications');
+
 
     // Tuitions add new post
-    app.get('/tuitions',async(req,res)=>{
-      const result =await tuitionscollection.find().toArray()
+    app.get('/tuitions', async (req, res) => {
+      const { email } = req.query;
+
+      let query = {};
+      if (email) {
+        query = { "student.email": email };
+      }
+
+      const result = await tuitionscollection.find(query).toArray();
+      res.send(result);
+    });
+
+    // save student addnew post 
+    app.post('/tuitions', async (req, res) => {
+      const tuition = req.body
+      const result = await tuitionscollection.insertOne(tuition)
       res.send(result)
     })
-    // save student addnew post 
-   app.post('/tuitions',async(req,res)=>{
-    const tuition =req.body
-    const result =await tuitionscollection.insertOne(tuition)
-    res.send(result)
-   })
+
+    // Tuitions delete
+    app.delete('/tuitions/:id', async (req, res) => {
+      const id = req.params.id
+      const query = { _id: new ObjectId(id) }
+      const result = await tuitionscollection.deleteOne(query)
+      res.send(result)
+    })
+
+
+    //  edite TUITIONS kora lagbe 
+    // app. 
+
+
+
+
+    //  tuitor application
+    app.post('/applications', async (req, res) => {
+      const application = req.body;
+
+      const result = await applicationsCollection.insertOne({
+        ...application,
+        status: 'pending',
+        appliedAt: new Date()
+      });
+
+      res.send(result);
+    });
+
+
+    // student dash bord a show hobe 
+    app.get('/applications/student/:email', async (req, res) => {
+      const email = req.params.email;
+
+      const result = await applicationsCollection
+        .find({ studentEmail: email })
+        .toArray();
+
+      res.send(result);
+
+    });
+
+
+
+
+    // Get all applications for a specific tutor
+    app.get('/applications/tutor/:email', async (req, res) => {
+      const { email } = req.params;
+
+      const result = await applicationsCollection
+        .find({ tutorEmail: email })
+        .toArray();
+
+      res.send(result);
+    });
+
+
+
+
 
 
     // Send a ping to confirm a successful connection
