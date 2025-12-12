@@ -35,6 +35,7 @@ async function run() {
     const applicationsCollection = db.collection('applications');
     // payment history db
     const paymentHistoryCollection = db.collection('paymentHistory');
+    const usercollection = db.collection('user')
 
 
     // Tuitions add new post
@@ -182,21 +183,21 @@ async function run() {
     });
 
     // tuitor paymet   hisory 
-   app.get('/payments/tutor/:email', async (req, res) => {
-  const email = req.params.email;
+    app.get('/payments/tutor/:email', async (req, res) => {
+      const email = req.params.email;
 
-  const payments = await paymentHistoryCollection
-    .find({ tutorEmail: email })
-    .toArray();
+      const payments = await paymentHistoryCollection
+        .find({ tutorEmail: email })
+        .toArray();
 
-  const total = payments.reduce((sum, p) => sum + (p.price || 0), 0);
+      const total = payments.reduce((sum, p) => sum + (p.price || 0), 0);
 
-  res.send({
-    totalEarnings: total,
-    count: payments.length,
-    payments
-  });
-});
+      res.send({
+        totalEarnings: total,
+        count: payments.length,
+        payments
+      });
+    });
 
 
 
@@ -213,6 +214,37 @@ async function run() {
       res.send(result);
     });
 
+
+
+    // save or update user in db   
+
+    app.post('/user', async (req, res) => {
+      const userData = req.body
+      userData.created_at = new Date().toISOString()
+      userData.last_loggedIn = new Date().toISOString()
+      userData.role = 'student'
+
+      const query = {
+        email: userData.email,
+      }
+
+      const alreadyExists = await usercollection.findOne(query)
+      console.log('User Already Exists---> ', !!alreadyExists)
+
+       if (alreadyExists) {
+        console.log('Updating user info......')
+        const result = await usercollection.updateOne(query,{
+          $set:{
+            last_loggedIn: new Date().toISOString(),
+          },
+        })
+        return res.send(result)
+      }
+
+      console.log('Saving new user info......')
+      const result = await usercollection.insertOne(userData)
+      res.send(result)
+    })
 
 
 
