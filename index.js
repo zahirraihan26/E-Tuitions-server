@@ -3,6 +3,7 @@ const cors = require('cors')
 const app = express()
 require('dotenv').config();
 const { MongoClient, ServerApiVersion, ObjectId } = require('mongodb');
+const stripe = require('stripe')(process.env.STRIPE_SECRET_KEY)
 const port = process.env.PORT || 3000
 
 // middil were 
@@ -32,6 +33,8 @@ async function run() {
     const tuitionscollection = db.collection('tuitions')
     // tuitor db 
     const applicationsCollection = db.collection('applications');
+    // payment history db
+    const paymentHistoryCollection = db.collection('paymentHistory');
 
 
     // Tuitions add new post
@@ -69,7 +72,7 @@ async function run() {
 
 
 
-    //  tuitor application
+    //  tuitor application // tuitor db 
     app.post('/applications', async (req, res) => {
       const application = req.body;
 
@@ -83,7 +86,7 @@ async function run() {
     });
 
 
-    // student dash bord a show hobe 
+    // student dash bord a show hobe // tuitor db 
     app.get('/applications/student/:email', async (req, res) => {
       const email = req.params.email;
 
@@ -96,8 +99,83 @@ async function run() {
     });
 
 
+    // reject application 
+    app.patch('/applications/reject/:id', async (req, res) => {
+      const id = req.params.id;
+      const filter = { _id: new ObjectId(id) };
+      const updateDoc = {
+        $set: { status: "rejected" }
+      };
+      const result = await applicationsCollection.updateOne(filter, updateDoc);
+      res.send(result);
+    });
 
 
+    //  PAYMENT
+    // payment in // tuitor db 
+    app.post('/create-checkout-session', async (req, res) => {
+      const paymentInfo = req.body;
+      console.log(paymentInfo)
+      // res.send(paymetInfo)
+      const session = await stripe.checkout.sessions.create({
+        line_items: [
+          {
+            price_data: {
+              currency: 'usd',
+              product_data: {
+                name: paymentInfo?.name,
+              },
+              unit_amount: paymentInfo?.price * 100,
+            },
+            quantity: 1,
+          },
+        ],
+        customer_email: paymentInfo?.studentEmail,
+        mode: 'payment',
+        metadata: {
+          applicationId: paymentInfo?.applicationId,
+          tutorEmail:paymentInfo?.tutorEmail,
+          subject:paymentInfo?.subject,
+          coustomer: paymentInfo?.coustomer
+        },
+        success_url: `${process.env.CLIENT_DOMEN}/dashboard/payment-success?session_id={CHECKOUT_SESSION_ID}`,
+        cancel_url: `${process.env.CLIENT_DOMEN}/dashboard/applied-tutors`,
+      })
+      res.send({ url: session.url })
+    })
+
+          // payment success 
+    app.post('/payment-success', async (req, res) => {
+  const { sessionId } = req.body;
+  const session = await stripe.checkout.sessions.retrieve(sessionId);
+  const applicationId = session.metadata.applicationId;
+
+  // 1️⃣ Update application status (একবারই)
+  await applicationsCollection.updateOne(
+    { _id: new ObjectId(applicationId) },
+    { $set: { status: "approved" } }
+  );
+
+  // 2️⃣ Prevent duplicate insert in paymentHistory
+  const exists = await paymentHistoryCollection.findOne({ applicationId });
+  if (!exists) {
+    await paymentHistoryCollection.insertOne({
+      applicationId: applicationId,
+      tutorEmail: session.metadata.tutorEmail,
+      subject:session.metadata.subject,
+      studentEmail: session.customer_email,
+      price: session.amount_total / 100,
+      currency: session.currency,
+      paymentStatus: session.payment_status,
+      paidAt: new Date(),
+    });
+  }
+
+  res.send({ success: true });
+});
+
+
+    //  teacher // tuitor db 
     // Get all applications for a specific tutor
     app.get('/applications/tutor/:email', async (req, res) => {
       const { email } = req.params;
