@@ -134,8 +134,8 @@ async function run() {
         mode: 'payment',
         metadata: {
           applicationId: paymentInfo?.applicationId,
-          tutorEmail:paymentInfo?.tutorEmail,
-          subject:paymentInfo?.subject,
+          tutorEmail: paymentInfo?.tutorEmail,
+          subject: paymentInfo?.subject,
           coustomer: paymentInfo?.coustomer
         },
         success_url: `${process.env.CLIENT_DOMEN}/dashboard/payment-success?session_id={CHECKOUT_SESSION_ID}`,
@@ -144,35 +144,61 @@ async function run() {
       res.send({ url: session.url })
     })
 
-          // payment success 
+    // payment success 
     app.post('/payment-success', async (req, res) => {
-  const { sessionId } = req.body;
-  const session = await stripe.checkout.sessions.retrieve(sessionId);
-  const applicationId = session.metadata.applicationId;
+      const { sessionId } = req.body;
+      const session = await stripe.checkout.sessions.retrieve(sessionId);
+      const applicationId = session.metadata.applicationId;
 
-  // 1️⃣ Update application status (একবারই)
-  await applicationsCollection.updateOne(
-    { _id: new ObjectId(applicationId) },
-    { $set: { status: "approved" } }
-  );
+      // 1️⃣ Update application status (একবারই)
+      await applicationsCollection.updateOne(
+        { _id: new ObjectId(applicationId) },
+        { $set: { status: "approved" } }
+      );
 
-  // 2️⃣ Prevent duplicate insert in paymentHistory
-  const exists = await paymentHistoryCollection.findOne({ applicationId });
-  if (!exists) {
-    await paymentHistoryCollection.insertOne({
-      applicationId: applicationId,
-      tutorEmail: session.metadata.tutorEmail,
-      subject:session.metadata.subject,
-      studentEmail: session.customer_email,
-      price: session.amount_total / 100,
-      currency: session.currency,
-      paymentStatus: session.payment_status,
-      paidAt: new Date(),
+      // 2️⃣ Prevent duplicate insert in paymentHistory
+      const exists = await paymentHistoryCollection.findOne({ applicationId });
+      if (!exists) {
+        await paymentHistoryCollection.insertOne({
+          applicationId: applicationId,
+          tutorEmail: session.metadata.tutorEmail,
+          subject: session.metadata.subject,
+          studentEmail: session.customer_email,
+          price: session.amount_total / 100,
+          currency: session.currency,
+          paymentStatus: session.payment_status,
+          paidAt: new Date(),
+        });
+      }
+
+      res.send({ success: true });
     });
-  }
 
-  res.send({ success: true });
+    //  student payment info  history
+    app.get('/payments/student/:email', async (req, res) => {
+      const email = req.params.email;
+      const result = await paymentHistoryCollection.find({ studentEmail: email }).toArray();
+      res.send(result);
+    });
+
+    // tuitor paymet   hisory 
+   app.get('/payments/tutor/:email', async (req, res) => {
+  const email = req.params.email;
+
+  const payments = await paymentHistoryCollection
+    .find({ tutorEmail: email })
+    .toArray();
+
+  const total = payments.reduce((sum, p) => sum + (p.price || 0), 0);
+
+  res.send({
+    totalEarnings: total,
+    count: payments.length,
+    payments
+  });
 });
+
+
 
 
     //  teacher // tuitor db 
