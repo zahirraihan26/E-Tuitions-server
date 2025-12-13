@@ -8,7 +8,10 @@ const port = process.env.PORT || 3000
 
 // middil were 
 app.use(express.json())
-app.use(cors())
+app.use(cors({
+  origin: [process.env.CLIENT_DOMEN],
+  credentials: true
+}));
 
 
 const uri = `mongodb+srv://${process.env.DB_USER}:${process.env.DB_PASS}@cluster0.5wfdugv.mongodb.net/?appName=Cluster0`;
@@ -38,7 +41,7 @@ async function run() {
     const usercollection = db.collection('user')
 
 
-    // Tuitions add new post
+    // Tuitions save new post api theke ne a astise 
     app.get('/tuitions', async (req, res) => {
       const { email } = req.query;
 
@@ -51,7 +54,7 @@ async function run() {
       res.send(result);
     });
 
-    // save student addnew post 
+    //  add student addnew post 
     app.post('/tuitions', async (req, res) => {
       const tuition = req.body
       const result = await tuitionscollection.insertOne(tuition)
@@ -231,10 +234,10 @@ async function run() {
       const alreadyExists = await usercollection.findOne(query)
       console.log('User Already Exists---> ', !!alreadyExists)
 
-       if (alreadyExists) {
+      if (alreadyExists) {
         console.log('Updating user info......')
-        const result = await usercollection.updateOne(query,{
-          $set:{
+        const result = await usercollection.updateOne(query, {
+          $set: {
             last_loggedIn: new Date().toISOString(),
           },
         })
@@ -246,6 +249,32 @@ async function run() {
       res.send(result)
     })
 
+    //  get a user role 
+    app.get('/user/role/:email', async (req, res) => {
+      const email = req.params.email
+      const result = await usercollection.findOne({ email })
+
+      res.send({ role: result?.role })
+    })
+
+    // adimin
+    // approve student tuition post 
+    app.patch("/tuitions/approve/:id", async (req, res) => {
+      const id = req.params.id;
+      const filter = { _id: new ObjectId(id) };
+      const updateDoc = { $set: { status: "approved" } };
+      const result = await tuitionscollection.updateOne(filter, updateDoc);
+      res.send(result);
+    });
+
+    // admin reject tuition post 
+    app.patch("/tuitions/reject/:id", async (req, res) => {
+      const id = req.params.id;
+      const filter = { _id: new ObjectId(id) };
+      const updateDoc = { $set: { status: "rejected" } };
+      const result = await tuitionscollection.updateOne(filter, updateDoc);
+      res.send(result);
+    });
 
 
 
