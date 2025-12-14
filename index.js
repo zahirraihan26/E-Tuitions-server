@@ -41,6 +41,7 @@ async function run() {
     const usercollection = db.collection('user')
 
 
+
     // Tuitions save new post api theke ne a astise 
     app.get('/tuitions', async (req, res) => {
       const { email } = req.query;
@@ -52,6 +53,14 @@ async function run() {
 
       const result = await tuitionscollection.find(query).toArray();
       res.send(result);
+    });
+    //  view details 
+    app.get('/tuitions/:id', async (req, res) => {
+      const id = req.params.id;
+      // Fetch tuition from the collection
+      const tuition = await tuitionscollection.findOne({ _id: new ObjectId(id) });
+      // Send tuition details
+      res.send(tuition);
     });
 
     //  add student addnew post 
@@ -108,11 +117,28 @@ async function run() {
       }
     });
 
+    // Tutor apply (POST) route
+    app.post('/applications', async (req, res) => {
+      const application = req.body; // studentEmail, tutorEmail, tuitionId, message, status etc.
+
+      // Default status
+      application.status = "pending";
+      application.createdAt = new Date();
+
+      try {
+        const result = await applicationsCollection.insertOne(application);
+        res.send(result);
+      } catch (err) {
+        console.error(err);
+        res.status(500).send({ error: 'Failed to submit application' });
+      }
+    });
 
 
 
 
- 
+
+
 
     // student dash bord a show hobe // tuitor db 
     app.get('/applications/student/:email', async (req, res) => {
@@ -364,6 +390,27 @@ async function run() {
       res.send(result);
     });
 
+    // Reports & Analytics by Admin 
+
+    app.get('/payments', async (req, res) => {
+      const result = await paymentHistoryCollection.find().toArray();
+      res.send(result);
+    });
+
+    // paymen summary by admin 
+    app.get('/payments/summary', async (req, res) => {
+      const summary = await paymentHistoryCollection.aggregate([
+        {
+          $group: {
+            _id: null,
+            totalEarnings: { $sum: "$price" },
+            totalTransactions: { $sum: 1 },
+          },
+        },
+      ]).toArray();
+
+      res.send(summary[0] || { totalEarnings: 0, totalTransactions: 0 });
+    });
 
 
     // Send a ping to confirm a successful connection
