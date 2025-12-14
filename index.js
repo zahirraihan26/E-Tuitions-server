@@ -71,24 +71,48 @@ async function run() {
 
 
     //  edite TUITIONS kora lagbe 
-    // app. 
+    // Tuitions update
+    app.patch('/tuitions/:id', async (req, res) => {
+      try {
+        const id = req.params.id;
+        const updatedData = req.body;
 
+        // MongoDB update
+        const result = await tuitionscollection.updateOne(
+          { _id: new ObjectId(id) },
+          { $set: updatedData }
+        );
 
-
-
-    //  tuitor application // tuitor db 
-    app.post('/applications', async (req, res) => {
-      const application = req.body;
-
-      const result = await applicationsCollection.insertOne({
-        ...application,
-        status: 'pending',
-        appliedAt: new Date()
-      });
-
-      res.send(result);
+        res.send(result);
+      } catch (err) {
+        console.error(err);
+        res.status(500).send({ error: 'Tuition update failed' });
+      }
     });
 
+    // GET tuition by ID
+    app.get('/tuitions/:id', async (req, res) => {
+      try {
+        const id = req.params.id;
+        const query = { _id: new ObjectId(id) };
+        const tuition = await tuitionscollection.findOne(query);
+
+        if (!tuition) {
+          return res.status(404).send({ error: 'Tuition not found' });
+        }
+
+        res.send(tuition);
+      } catch (err) {
+        console.error(err);
+        res.status(500).send({ error: 'Server error' });
+      }
+    });
+
+
+
+
+
+ 
 
     // student dash bord a show hobe // tuitor db 
     app.get('/applications/student/:email', async (req, res) => {
@@ -218,6 +242,38 @@ async function run() {
     });
 
 
+    // update tuitor post 
+    app.patch("/applications/update/:id", async (req, res) => {
+      const id = req.params.id;
+      const updatedData = req.body;
+
+      const result = await applicationsCollection.updateOne(
+        { _id: new ObjectId(id), status: "pending" },
+        {
+          $set: {
+            qualifications: updatedData.qualifications,
+            experience: updatedData.experience,
+            expectedSalary: updatedData.expectedSalary,
+          },
+        }
+      );
+
+      res.send(result);
+    });
+
+
+    // delete tuitor post 
+    app.delete("/applications/:id", async (req, res) => {
+      const id = req.params.id;
+
+      const result = await applicationsCollection.deleteOne({
+        _id: new ObjectId(id),
+        status: "pending",
+      });
+
+      res.send(result);
+    });
+
 
     // save or update user in db   
 
@@ -225,7 +281,7 @@ async function run() {
       const userData = req.body
       userData.created_at = new Date().toISOString()
       userData.last_loggedIn = new Date().toISOString()
-      userData.role = 'student'
+      userData.role = userData.role || 'student';
 
       const query = {
         email: userData.email,
@@ -276,6 +332,37 @@ async function run() {
       res.send(result);
     });
 
+
+    // gate all role by admin 
+    app.get('/user-request', async (req, res) => {
+      const cursor = usercollection.find();
+      const result = await cursor.toArray();
+      res.send(result)
+    })
+
+    // update role admin 
+    // Update user role
+    app.patch('/users/role/:id', async (req, res) => {
+      const id = req.params.id;
+      const { role } = req.body; // role = 'admin' | 'student' | 'tutor'
+
+      if (!role) return res.status(400).send({ error: 'Role is required' });
+
+      const result = await usercollection.updateOne(
+        { _id: new ObjectId(id) },
+        { $set: { role } }
+      );
+
+      res.send(result);
+    });
+
+
+    // Admin delete user 
+    app.delete('/users/:id', async (req, res) => {
+      const id = req.params.id;
+      const result = await usercollection.deleteOne({ _id: new ObjectId(id) });
+      res.send(result);
+    });
 
 
 
