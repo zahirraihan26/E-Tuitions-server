@@ -70,6 +70,18 @@ async function run() {
       res.send(result)
     })
 
+
+    // Search tuitions by location
+    // app.get('/tuitions/search', async (req, res) => {
+    //   const { location } = req.query;
+    //   if (!location) return res.send([]);
+    //   const result = await tuitionscollection.find({
+    //     location: { $regex: location, $options: 'i' }
+    //   }).toArray();
+    //   res.send(result);
+    // });
+
+
     // Tuitions delete
     app.delete('/tuitions/:id', async (req, res) => {
       const id = req.params.id
@@ -421,7 +433,7 @@ async function run() {
     });
 
 
-    
+
 
     // Send a ping to confirm a successful connection
     await client.db("admin").command({ ping: 1 });
