@@ -9,7 +9,7 @@ This project was built as part of a **technical assessment** to demonstrate real
 ---
 
 ## 🌐 Live Website
-🔗 **Client Live URL:**
+🔗 **Client Live URL:**https://lighthearted-croissant-f7f679.netlify.app/
 
 ---
 
