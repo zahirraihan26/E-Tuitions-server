@@ -10,9 +10,11 @@ const port = process.env.PORT || 3000
 app.use(express.json())
 const allowedOrigins = [
   "http://localhost:5173",
+  "https://tangerine-puffpuff-cbb066.netlify.app",
   "https://whimsical-beijinho-8f5d76.netlify.app",
   "https://e-tuitions-bd.firebaseapp.com",
   "https://e-tuitions-bd.web.app",
+  "https://tangerine-puffpuff-cbb066.netlify.app",
   process.env.CLIENT_DOMEN
 ].filter(Boolean);
 
