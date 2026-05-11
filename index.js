@@ -20,7 +20,7 @@ app.use(cors({
 }));
 
 
-const uri = `mongodb://${process.env.DB_USER}:${process.env.DB_PASS}@ac-yodotek-shard-00-00.5wfdugv.mongodb.net:27017,ac-yodotek-shard-00-01.5wfdugv.mongodb.net:27017,ac-yodotek-shard-00-02.5wfdugv.mongodb.net:27017/?ssl=true&replicaSet=atlas-tb26zb-shard-0&authSource=admin&retryWrites=true&w=majority&appName=Cluster0`;
+const uri = `mongodb+srv://${process.env.DB_USER}:${process.env.DB_PASS}@cluster0.5wfdugv.mongodb.net/?retryWrites=true&w=majority&appName=Cluster0`;
 
 
 // Create a MongoClient with a MongoClientOptions object to set the Stable API version
@@ -460,3 +460,5 @@ app.get('/', (req, res) => {
 app.listen(port, () => {
   console.log(`Example app listening on port ${port}`)
 })
+
+module.exports = app;
