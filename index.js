@@ -9,12 +9,18 @@ const port = process.env.PORT || 3000
 // middil were 
 app.use(express.json())
 app.use(cors({
-  origin: [process.env.CLIENT_DOMEN],
+  origin: [
+    "http://localhost:5173",
+    "https://whimsical-beijinho-8f5d76.netlify.app",
+    "https://e-tuitions-bd.firebaseapp.com",
+    "https://e-tuitions-bd.web.app",
+    process.env.CLIENT_DOMEN
+  ].filter(Boolean),
   credentials: true
 }));
 
 
-const uri = `mongodb+srv://${process.env.DB_USER}:${process.env.DB_PASS}@cluster0.5wfdugv.mongodb.net/?appName=Cluster0`;
+const uri = `mongodb://${process.env.DB_USER}:${process.env.DB_PASS}@ac-yodotek-shard-00-00.5wfdugv.mongodb.net:27017,ac-yodotek-shard-00-01.5wfdugv.mongodb.net:27017,ac-yodotek-shard-00-02.5wfdugv.mongodb.net:27017/?ssl=true&replicaSet=atlas-tb26zb-shard-0&authSource=admin&retryWrites=true&w=majority&appName=Cluster0`;
 
 
 // Create a MongoClient with a MongoClientOptions object to set the Stable API version
